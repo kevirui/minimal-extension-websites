@@ -9,6 +9,7 @@ export default defineContentScript({
   matches: [
     '*://*.youtube.com/*',
     '*://*.reddit.com/*',
+    '*://*.instagram.com/*',
   ],
   runAt: 'document_start',
   main() {

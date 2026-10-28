@@ -6,23 +6,32 @@
 
 ## Features
 
-- **Multi-Site Architecture**: Extensible site adapter architecture with independent rules for **YouTube** and **Reddit**.
+- **Multi-Site Architecture**: Extensible site adapter architecture with independent rules for **YouTube**, **Reddit**, and **Instagram**.
 - **Distraction-Free Controls**:
   - **YouTube**:
     - Hide Shorts (navigation links, shelves, reel sections, and tabs).
-    - Hide Homepage Recommendations (keep search and navigation clean).
-    - Hide Related Videos on Watch Pages (eliminate rabbit holes).
-    - Hide Comments (focus on video content).
+    - Hide Left Sidebar & clean home video grid centering.
+    - Hide Video Categories (topic filter chips).
+    - Hide Header Buttons (mic, create, notifications, profile).
+    - Clean Video Action Buttons (preserves only Subscribe, Like, and Save to Playlist).
+    - Hide Video Description.
+    - Center Video Player & Minimalist Layout.
+    - Hide Related Videos on Watch Pages.
+    - Hide Comments.
+  - **Instagram**:
+    - Hide Floating Messages Button (floating chat pill in bottom-right corner).
+    - Hide Right Sidebar (profile switcher, suggestions for you, footer links) and center main feed.
+    - Hide Reels, Search, Create, More, and Also from Meta navigation buttons.
   - **Reddit**:
     - Hide Promoted Posts & Ads across Shreddit, New Reddit, and Old Reddit.
     - Hide "Recent Posts" and recommended community carousels.
 - **Instant Updates**: Toggle rules on and off with zero-reload dynamic CSS updates.
-- **Single-Page Application (SPA) Support**: Automatically applies and preserves rules across YouTube (`yt-navigate-finish`) and Reddit client-side routing.
+- **Single-Page Application (SPA) Support**: Automatically applies and preserves rules across YouTube, Instagram, and Reddit client-side routing.
 - **Privacy First & Local Storage**:
   - No remote code or third-party servers.
   - Zero analytics, tracking, or telemetry.
   - Strictly relies on `chrome.storage.local`.
-  - Minimal host permissions: only `*://*.youtube.com/*` and `*://*.reddit.com/*`.
+  - Minimal host permissions: only `*://*.youtube.com/*`, `*://*.reddit.com/*`, and `*://*.instagram.com/*`.
 
 ---
 

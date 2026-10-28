@@ -42,9 +42,19 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     const loaded = await loadAppSettings(defaultRegistry.getAll(), memoryBackend);
     expect(loaded.youtube).toBeDefined();
     expect(loaded.youtube['yt-hide-shorts']).toBe(true);
-    expect(loaded.youtube['yt-hide-home-feed']).toBe(false);
+    expect(loaded.youtube['yt-hide-sidebar']).toBe(false);
+    expect(loaded.youtube['yt-hide-categories']).toBe(false);
+    expect(loaded.youtube['yt-hide-header-buttons']).toBe(false);
+    expect(loaded.youtube['yt-clean-watch-actions']).toBe(false);
+    expect(loaded.youtube['yt-hide-video-description']).toBe(false);
+    expect(loaded.youtube['yt-center-watch-player']).toBe(false);
     expect(loaded.youtube['yt-hide-related-videos']).toBe(false);
     expect(loaded.youtube['yt-hide-comments']).toBe(false);
+
+    expect(loaded.instagram).toBeDefined();
+    expect(loaded.instagram['ig-hide-floating-messages']).toBe(false);
+    expect(loaded.instagram['ig-hide-right-sidebar']).toBe(false);
+    expect(loaded.instagram['ig-hide-nav-buttons']).toBe(false);
   });
 
   // SCENARIO B: Toggle & DOM Visibility
@@ -96,7 +106,6 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     // User has enabled all rules in settings
     const userSettings = {
       'yt-hide-shorts': true,
-      'yt-hide-home-feed': true,
       'yt-hide-related-videos': true,
       'yt-hide-comments': true,
     };
@@ -104,25 +113,22 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     // Route 1: Homepage
     engine.applySettings(userSettings, new URL('https://www.youtube.com/'));
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-shorts`)).not.toBeNull();
-    expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-home-feed`)).not.toBeNull();
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-comments`)).toBeNull(); // not on watch
 
     // Route 2: Watch page
     engine.applySettings(userSettings, new URL('https://www.youtube.com/watch?v=abc'));
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-shorts`)).not.toBeNull();
-    expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-home-feed`)).toBeNull(); // obsolete route rule cleaned up!
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-comments`)).not.toBeNull(); // active on watch
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-related-videos`)).not.toBeNull();
 
     // Route 3: Search results
     engine.applySettings(userSettings, new URL('https://www.youtube.com/results?search_query=test'));
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-shorts`)).not.toBeNull();
-    expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-home-feed`)).toBeNull();
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-comments`)).toBeNull();
 
     // Route 4: Back to Homepage
     engine.applySettings(userSettings, new URL('https://www.youtube.com/'));
-    expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-home-feed`)).not.toBeNull();
+    expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-shorts`)).not.toBeNull();
     expect(doc.getElementById(`${STYLE_ELEMENT_PREFIX}yt-hide-comments`)).toBeNull();
 
     engine.destroy();

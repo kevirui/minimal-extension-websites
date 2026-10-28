@@ -35,21 +35,89 @@ This document records the exact CSS selectors used by ClearFrame, the target sur
 
 ---
 
-### 1.2 `yt-hide-home-feed` — Hide Home Recommendations
+### 1.2 `yt-hide-sidebar` — Hide Left Sidebar
 - **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
-- **Target Component**: Algorithmic video recommendation grid on the primary homepage.
-- **Route Scope**: Homepage (`home`). Scoped strictly to `url.pathname === '/'`.
+- **Target Component**: Left navigation sidebar / drawer (guide and mini-guide) and homepage video grid centering.
+- **Route Scope**: Global (`all`).
 - **Selectors**:
-  - `ytd-browse[page-subtype="home"] #contents.ytd-rich-grid-renderer`
-  - `ytd-browse[page-subtype="home"] ytd-rich-grid-renderer`
-  - `ytm-browse[page-subtype="home"] .tab-content`
-- **Dynamic Rendering**: Controlled by declarative CSS applied only while on `/`. When navigating to a watch page or search query via YouTube SPA router (`yt-navigate-finish`), the engine automatically cleans up the style element.
-- **Reversibility**: Removing the style restores the rich grid in full. Top search bar, masthead, and account menus are outside the selector tree and remain fully interactive.
-- **Fragility & Limitations**: If YouTube deprecates `[page-subtype="home"]`, the fallback is the route-level applicability check enforced by `RuleEngine`.
+  - `ytd-guide-renderer#guide-renderer`
+  - `#guide-wrapper`
+  - `tp-yt-app-drawer#guide`
+  - `ytd-mini-guide-renderer`
+  - `#guide-content`
+- **Layout Styling (`customCss`)**: Resets YouTube's reserved sidebar margin on `ytd-page-manager#page-manager { margin-left: 0 !important; }` and centers `ytd-browse[page-subtype="home"] ytd-rich-grid-renderer` with `margin: 0 auto !important; justify-content: center !important;`.
+- **Reversibility**: Removing `#clearframe-rule-yt-hide-sidebar` restores the default margin and guide visibility.
 
 ---
 
-### 1.3 `yt-hide-related-videos` — Hide Related Videos on Watch Page
+### 1.3 `yt-hide-categories` — Hide Video Categories
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Filter chip category bar at top of video feed (All, Gaming, Music, Podcasts, etc.).
+- **Route Scope**: Home (`home`). Scoped to `url.pathname === '/' || url.pathname === ''`.
+- **Selectors**:
+  - `ytd-feed-filter-chip-bar-renderer`
+  - `#chips-wrapper`
+  - `yt-chip-cloud-renderer`
+  - `iron-selector#chips`
+  - `ytm-feed-filter-chip-bar-renderer`
+- **Reversibility**: Removing `#clearframe-rule-yt-hide-categories` immediately restores the topic chip bar.
+
+---
+
+### 1.4 `yt-hide-header-buttons` — Hide Header Buttons
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Mic (voice search), "+ Create" button, notifications bell, and user profile avatar.
+- **Route Scope**: Global (`all`).
+- **Selectors**:
+  - `#voice-search-button`
+  - `ytd-masthead #voice-search-button`
+  - `ytd-masthead ytd-button-renderer:has(a[href*="/upload"])`
+  - `ytd-masthead ytd-button-renderer:has(button[aria-label*="Create"])`
+  - `ytd-masthead ytd-button-renderer:has(button[aria-label*="Crear"])`
+  - `ytd-masthead yt-icon-button:has(button[aria-label*="Create"])`
+  - `ytd-masthead #buttons ytd-button-renderer:first-child`
+  - `ytd-masthead ytd-notification-topbar-button-renderer`
+  - `ytd-masthead #notification-button`
+  - `ytd-masthead ytd-topbar-menu-button-renderer:has(#avatar-btn)`
+  - `ytd-masthead #avatar-btn`
+- **Reversibility**: The search bar and logo are preserved; removing the rule restores all header actions.
+
+---
+
+### 1.5 `yt-clean-watch-actions` — Clean Video Action Buttons
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Cluttered action buttons below video player. Preserves Subscribe, Like/Dislike, and Save to Playlist.
+- **Route Scope**: Watch page (`watch`). Scoped to `url.pathname === '/watch'`.
+- **Selectors**: Targets Share, Ask (AI), Remix, Thanks, Clip, Download, and the more actions menu (`...`) via localized accessibility attributes and button renderers.
+- **Reversibility**: Restores all supplementary buttons upon toggle off.
+
+---
+
+### 1.6 `yt-hide-video-description` — Hide Video Description
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Expandable video description and metadata details box below video player.
+- **Route Scope**: Watch page (`watch`). Scoped to `url.pathname === '/watch'`.
+- **Selectors**:
+  - `ytd-watch-metadata #description`
+  - `ytd-watch-metadata #description-inner`
+  - `#meta #description`
+  - `ytd-expander.ytd-video-secondary-info-renderer`
+  - `ytd-text-inline-expander`
+  - `ytm-item-section-renderer[section-identifier="video-description"]`
+- **Reversibility**: Removing `#clearframe-rule-yt-hide-video-description` restores description box instantly.
+
+---
+
+### 1.7 `yt-center-watch-player` — Center Video Player & Minimalist Layout
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Video player and watch columns layout.
+- **Route Scope**: Watch page (`watch`). Scoped to `url.pathname === '/watch'`.
+- **Layout Styling (`customCss`)**: Enforces `margin: 0 auto !important` and `justify-content: center !important` on `ytd-watch-flexy[flexy] #columns` and `ytd-watch-flexy[flexy] #primary`.
+- **Reversibility**: Restores standard side-by-side flex layout when disabled.
+
+---
+
+### 1.8 `yt-hide-related-videos` — Hide Related Videos on Watch Page
 - **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
 - **Target Component**: Secondary sidebar recommendation column on video watch pages.
 - **Route Scope**: Watch page (`watch`). Scoped to `url.pathname === '/watch'`.
@@ -64,7 +132,7 @@ This document records the exact CSS selectors used by ClearFrame, the target sur
 
 ---
 
-### 1.4 `yt-hide-comments` — Hide Comments
+### 1.9 `yt-hide-comments` — Hide Comments
 - **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
 - **Target Component**: User comments container on watch pages.
 - **Route Scope**: Watch page (`watch`). Scoped to `url.pathname === '/watch'`.
@@ -109,3 +177,44 @@ This document records the exact CSS selectors used by ClearFrame, the target sur
   - `shreddit-feed-carousel[data-testid="recommended-carousel"]`
 - **Dynamic Rendering**: Declaratively hidden on feeds.
 - **Reversibility**: Removing `#clearframe-rule-reddit-hide-sidebar-recommendations` restores the widget. Subreddit rules, moderators, and sidebar community information remain visible.
+
+---
+
+## 3. Instagram Adapter (`instagram.com`)
+
+### 3.1 `ig-hide-floating-messages` — Hide Floating Messages Button
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Persistent floating direct message button pill / widget anchored in the bottom right corner.
+- **Route Scope**: Global (`all`).
+- **Selectors**:
+  - `[data-pagelet="IGDChatTabsRootContent"]`
+  - `div:has(> [data-pagelet="IGDChatTabsRootContent"])`
+  - `div[role="button"]:has(svg[aria-label*="Messages" i])`
+  - `div[role="button"]:has(svg[aria-label*="Mensajes" i])`
+  - `div:has(> div > div > svg[aria-label*="Direct" i]):not(nav div)`
+- **Reversibility**: Removing `#clearframe-rule-ig-hide-floating-messages` restores the chat widget immediately. The main left navigation Messages link is preserved.
+
+---
+
+### 3.2 `ig-hide-right-sidebar` — Hide Right Sidebar (Suggestions & Profile)
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Right column containing user profile switcher, "Suggested for you" recommendations, and Meta footer links.
+- **Route Scope**: Home (`home`). Scoped to `url.pathname === '/' || url.pathname === ''`.
+- **Selectors**:
+  - `div[role="complementary"]`
+  - `aside`
+  - `main ~ div:has(a[href*="/explore/people/"])`
+  - `main > div > div > div > div ~ div:has(a[href*="/explore/people/"])`
+  - `main > div > div > div ~ div:has(a[href*="/explore/people/"])`
+- **Layout Styling (`customCss`)**: Centers the main feed dynamically when the right sidebar is hidden (`main[role="main"]` and `section` with `margin: 0 auto !important; justify-content: center !important`).
+- **Reversibility**: Restores the right-side suggestions column and default side-by-side positioning.
+
+---
+
+### 3.3 `ig-hide-nav-buttons` — Hide Reels, Search, Create, More & Meta
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Reels, Search, Create (+), More (menu), and Also from Meta (Threads) buttons from the left navigation bar.
+- **Route Scope**: Global (`all`).
+- **Selectors**: Targets navigation buttons using accessible labels, SVG patterns, and destination URLs (`/reels/`, `threads.net`, `aria-label*="Search"`, `aria-label*="New post"`, `aria-label*="More"`, `aria-label*="Settings"`).
+- **Reversibility**: Removing `#clearframe-rule-ig-hide-nav-buttons` immediately unhides these items. Home, Notifications, Direct Messages, and Profile buttons remain intact.
+

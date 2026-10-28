@@ -68,9 +68,10 @@ export class RuleEngine {
       const shouldApply = isEnabled && isApplicable;
 
       // 1. Ownership-aware CSS rule application
-      if (rule.selectors && rule.selectors.length > 0) {
+      const hasCss = (rule.selectors && rule.selectors.length > 0) || Boolean(rule.customCss);
+      if (hasCss) {
         if (shouldApply) {
-          this.applyCssRule(rule.id, rule.selectors);
+          this.applyCssRule(rule.id, rule.selectors || [], rule.customCss);
         } else {
           this.removeCssRule(rule.id);
         }
@@ -111,7 +112,7 @@ export class RuleEngine {
    * Injects or updates a dedicated style element owned strictly by the specified rule.
    * Prevents overwriting or removing styles owned by other rules or the site itself.
    */
-  private applyCssRule(ruleId: string, selectors: string[]): void {
+  private applyCssRule(ruleId: string, selectors: string[], customCss?: string): void {
     const styleId = `${STYLE_ELEMENT_PREFIX}${ruleId}`;
     let styleEl = this.activeStyleElements.get(ruleId);
 
@@ -129,7 +130,15 @@ export class RuleEngine {
       this.activeStyleElements.set(ruleId, styleEl);
     }
 
-    const cssContent = `/* [ClearFrame] Site: ${this.adapter.id} | Rule: ${ruleId} */\n${selectors.join(',\n')} {\n  display: none !important;\n}`;
+    const cssParts: string[] = [`/* [ClearFrame] Site: ${this.adapter.id} | Rule: ${ruleId} */`];
+    if (selectors.length > 0) {
+      cssParts.push(`${selectors.join(',\n')} {\n  display: none !important;\n}`);
+    }
+    if (customCss) {
+      cssParts.push(customCss);
+    }
+
+    const cssContent = cssParts.join('\n\n');
     if (styleEl.textContent !== cssContent) {
       styleEl.textContent = cssContent;
     }

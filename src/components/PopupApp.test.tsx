@@ -56,17 +56,17 @@ describe('PopupApp Component, Scope Badges & Recovery Actions', () => {
     expect(screen.getByText('YouTube')).toBeInTheDocument();
     expect(screen.getByText('Supported')).toBeInTheDocument();
 
-    // Verify all 4 YouTube rules are listed
+    // Verify YouTube rules are listed
     expect(screen.getByText('Hide Shorts')).toBeInTheDocument();
-    expect(screen.getByText('Hide Home Recommendations')).toBeInTheDocument();
+    expect(screen.getByText('Clean Video Action Buttons')).toBeInTheDocument();
+    expect(screen.getByText('Hide Video Description')).toBeInTheDocument();
+    expect(screen.getByText('Center Video Player & Minimalist Layout')).toBeInTheDocument();
     expect(screen.getByText('Hide Related Videos on Watch Page')).toBeInTheDocument();
     expect(screen.getByText('Hide Comments')).toBeInTheDocument();
 
-    // Check scope badges: Home recommendations is "Homepage only" on a watch page
-    expect(screen.getByText('Homepage only')).toBeInTheDocument();
-    // Related videos and comments are "Watch page"
+    // 5 rules have scope: 'watch'
     const watchBadges = screen.getAllByText('Watch page');
-    expect(watchBadges.length).toBe(2);
+    expect(watchBadges.length).toBe(5);
 
     // Check defaults: Hide Shorts is enabled by default
     const shortsSwitch = screen.getByRole('switch', { name: /Hide Shorts/i });

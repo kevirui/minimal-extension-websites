@@ -11,10 +11,11 @@ import {
 import { MemoryStorageBackend } from './memoryStorage';
 import { youtubeAdapter } from '../adapters/youtube';
 import { redditAdapter } from '../adapters/reddit';
+import { instagramAdapter } from '../adapters/instagram';
 import { SiteAdapter } from './types';
 
 describe('Storage, Migration, and Settings Validation', () => {
-  const adapters = [youtubeAdapter, redditAdapter];
+  const adapters = [youtubeAdapter, redditAdapter, instagramAdapter];
   let memoryBackend: MemoryStorageBackend;
 
   beforeEach(() => {
@@ -26,13 +27,23 @@ describe('Storage, Migration, and Settings Validation', () => {
 
     expect(defaults.youtube).toBeDefined();
     expect(defaults.youtube['yt-hide-shorts']).toBe(true);
-    expect(defaults.youtube['yt-hide-home-feed']).toBe(false);
+    expect(defaults.youtube['yt-hide-sidebar']).toBe(false);
+    expect(defaults.youtube['yt-hide-categories']).toBe(false);
+    expect(defaults.youtube['yt-hide-header-buttons']).toBe(false);
+    expect(defaults.youtube['yt-clean-watch-actions']).toBe(false);
+    expect(defaults.youtube['yt-hide-video-description']).toBe(false);
+    expect(defaults.youtube['yt-center-watch-player']).toBe(false);
     expect(defaults.youtube['yt-hide-related-videos']).toBe(false);
     expect(defaults.youtube['yt-hide-comments']).toBe(false);
 
     expect(defaults.reddit).toBeDefined();
     expect(defaults.reddit['reddit-hide-promoted']).toBe(true);
     expect(defaults.reddit['reddit-hide-sidebar-recommendations']).toBe(false);
+
+    expect(defaults.instagram).toBeDefined();
+    expect(defaults.instagram['ig-hide-floating-messages']).toBe(false);
+    expect(defaults.instagram['ig-hide-right-sidebar']).toBe(false);
+    expect(defaults.instagram['ig-hide-nav-buttons']).toBe(false);
   });
 
   it('safely handles missing, empty, or null stored values', () => {
@@ -43,7 +54,7 @@ describe('Storage, Migration, and Settings Validation', () => {
     expect(fromUndefined.reddit['reddit-hide-promoted']).toBe(true);
 
     const fromEmptyObj = normalizeSettings({}, adapters);
-    expect(fromEmptyObj.youtube['yt-hide-home-feed']).toBe(false);
+    expect(fromEmptyObj.youtube['yt-hide-related-videos']).toBe(false);
   });
 
   it('supports versioned V1 schema transparently', () => {
@@ -66,13 +77,13 @@ describe('Storage, Migration, and Settings Validation', () => {
     const legacy = {
       youtube: {
         'yt-hide-shorts': false,
-        'yt-hide-home-feed': true,
+        'yt-hide-related-videos': true,
       },
     };
 
     const normalized = normalizeSettings(legacy, adapters);
     expect(normalized.youtube['yt-hide-shorts']).toBe(false);
-    expect(normalized.youtube['yt-hide-home-feed']).toBe(true);
+    expect(normalized.youtube['yt-hide-related-videos']).toBe(true);
   });
 
   it('packs settings into versioned persisted format', () => {
@@ -89,7 +100,7 @@ describe('Storage, Migration, and Settings Validation', () => {
       sites: {
         youtube: {
           'yt-hide-shorts': 'invalid_string',
-          'yt-hide-home-feed': 12345,
+          'yt-hide-related-videos': 12345,
           'yt-hide-comments': null,
         },
         reddit: 'not-an-object',
@@ -100,7 +111,7 @@ describe('Storage, Migration, and Settings Validation', () => {
 
     // Fallbacks to default rule state safely
     expect(normalized.youtube['yt-hide-shorts']).toBe(true);
-    expect(normalized.youtube['yt-hide-home-feed']).toBe(false);
+    expect(normalized.youtube['yt-hide-related-videos']).toBe(false);
     expect(normalized.youtube['yt-hide-comments']).toBe(false);
     expect(normalized.reddit['reddit-hide-promoted']).toBe(true);
   });

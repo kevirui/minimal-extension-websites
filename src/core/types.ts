@@ -2,7 +2,7 @@
  * Core type definitions for ClearFrame.
  */
 
-export type SiteId = 'youtube' | 'reddit';
+export type SiteId = 'youtube' | 'reddit' | 'instagram';
 
 /**
  * Contextual page types for route-level applicability.
@@ -34,6 +34,10 @@ export interface RuleDefinition {
    * If provided, ClearFrame will generate declarative, ownership-tagged CSS to hide them cleanly.
    */
   selectors?: string[];
+  /**
+   * Optional custom raw CSS rules (e.g. alignment overrides, custom layout styles).
+   */
+  customCss?: string;
   /**
    * Optional custom DOM handler for complex components requiring dynamic manipulation.
    * Must return an idempotent cleanup callback that safely undoes all modifications.

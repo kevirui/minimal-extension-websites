@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { youtubeAdapter } from './youtube';
 import { redditAdapter } from './reddit';
+import { instagramAdapter } from './instagram';
 
 describe('Site Rules Scope and Route Applicability', () => {
   describe('YouTube Rules Applicability', () => {
     const shortsRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-shorts')!;
-    const homeFeedRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-home-feed')!;
     const relatedRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-related-videos')!;
     const commentsRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-comments')!;
 
@@ -15,23 +15,16 @@ describe('Site Rules Scope and Route Applicability', () => {
         expect(rule.label).toBeTruthy();
         expect(rule.description).toBeTruthy();
         expect(typeof rule.defaultEnabled).toBe('boolean');
-        expect(rule.selectors?.length).toBeGreaterThan(0);
+        expect((rule.selectors?.length ?? 0) > 0 || !!rule.customCss).toBe(true);
       }
     });
 
     it('evaluates rule route applicability accurately across routes', () => {
       const homeUrl = new URL('https://www.youtube.com/');
       const watchUrl = new URL('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-      const searchUrl = new URL('https://www.youtube.com/results?search_query=music');
 
       // Shorts is global ('all' scope)
       expect(shortsRule.scope).toBe('all');
-
-      // Home recommendations apply only on home page
-      expect(homeFeedRule.scope).toBe('home');
-      expect(homeFeedRule.isApplicable!(homeUrl)).toBe(true);
-      expect(homeFeedRule.isApplicable!(watchUrl)).toBe(false);
-      expect(homeFeedRule.isApplicable!(searchUrl)).toBe(false);
 
       // Related videos apply on watch pages
       expect(relatedRule.scope).toBe('watch');
@@ -71,6 +64,35 @@ describe('Site Rules Scope and Route Applicability', () => {
       expect(sidebarRule.isApplicable!(homeFeed)).toBe(true);
       expect(sidebarRule.isApplicable!(subFeed)).toBe(true);
       expect(sidebarRule.isApplicable!(commentsPage)).toBe(false);
+    });
+  });
+
+  describe('Instagram Rules Applicability', () => {
+    const floatingRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-floating-messages')!;
+    const sidebarRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-right-sidebar')!;
+    const navRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-nav-buttons')!;
+
+    it('declares valid rule metadata for Instagram rules', () => {
+      for (const rule of instagramAdapter.rules) {
+        expect(rule.id).toBeTruthy();
+        expect(rule.label).toBeTruthy();
+        expect(rule.description).toBeTruthy();
+        expect(typeof rule.defaultEnabled).toBe('boolean');
+        expect((rule.selectors?.length ?? 0) > 0 || !!rule.customCss).toBe(true);
+      }
+    });
+
+    it('evaluates Instagram rule applicability across home feed and other routes', () => {
+      const homeFeed = new URL('https://www.instagram.com/');
+      const explorePage = new URL('https://www.instagram.com/explore/');
+
+      expect(floatingRule.scope).toBe('all');
+      expect(navRule.scope).toBe('all');
+
+      // Right sidebar recommendations applies on home feed
+      expect(sidebarRule.scope).toBe('home');
+      expect(sidebarRule.isApplicable!(homeFeed)).toBe(true);
+      expect(sidebarRule.isApplicable!(explorePage)).toBe(false);
     });
   });
 });

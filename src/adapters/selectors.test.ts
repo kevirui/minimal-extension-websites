@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { youtubeAdapter } from './youtube';
 import { redditAdapter } from './reddit';
-import { youtubeHomeFixture, youtubeWatchFixture, redditFeedFixture } from '../test/fixtures';
+import { instagramAdapter } from './instagram';
+import { youtubeHomeFixture, youtubeWatchFixture, redditFeedFixture, instagramHomeFixture } from '../test/fixtures';
 
 describe('Selector Behavior Against Representative DOM Fixtures', () => {
   describe('YouTube Adapter Selectors', () => {
@@ -34,19 +35,6 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       expect(matchedIds).not.toContain('search');
     });
 
-    it('accurately targets homepage recommendation grid while preserving search & navigation', () => {
-      const homeFeedRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-home-feed');
-      expect(homeFeedRule).toBeDefined();
-
-      const combinedSelector = homeFeedRule!.selectors!.join(', ');
-      const matched = homeDoc.querySelectorAll(combinedSelector);
-
-      expect(matched.length).toBeGreaterThan(0);
-      // Ensure search bar and top masthead are NOT affected
-      expect(homeDoc.querySelector('#search')?.matches(combinedSelector)).toBe(false);
-      expect(homeDoc.querySelector('#masthead-container')?.matches(combinedSelector)).toBe(false);
-    });
-
     it('accurately targets related videos panel on watch page while preserving the player', () => {
       const relatedRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-related-videos');
       expect(relatedRule).toBeDefined();
@@ -72,6 +60,93 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       expect(matched.length).toBeGreaterThan(0);
       expect(matched[0].id).toBe('comments');
       expect(watchDoc.querySelector('#player')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets distracting action buttons while preserving like and playlist save', () => {
+      const actionsRule = youtubeAdapter.rules.find((r) => r.id === 'yt-clean-watch-actions');
+      expect(actionsRule).toBeDefined();
+
+      const combinedSelector = actionsRule!.selectors!.join(', ');
+      const matched = watchDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('share-btn');
+      expect(matchedIds).toContain('ask-btn');
+      expect(matchedIds).toContain('more-actions-btn');
+
+      // Crucial: Like and Save buttons must NOT be matched
+      expect(watchDoc.querySelector('#like-btn')?.matches(combinedSelector)).toBe(false);
+      expect(watchDoc.querySelector('#save-btn')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets video description elements on watch page', () => {
+      const descRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-video-description');
+      expect(descRule).toBeDefined();
+
+      const combinedSelector = descRule!.selectors!.join(', ');
+      const matched = watchDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('description');
+      expect(matchedIds).toContain('desc-expander');
+
+      // Video title and player must not be matched
+      expect(watchDoc.querySelector('#above-the-fold')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('provides customCss to center video player on watch page', () => {
+      const centerRule = youtubeAdapter.rules.find((r) => r.id === 'yt-center-watch-player');
+      expect(centerRule).toBeDefined();
+      expect(centerRule?.customCss).toContain('justify-content: center !important;');
+      expect(centerRule?.customCss).toContain('ytd-watch-flexy[flexy] #primary');
+    });
+
+    it('accurately targets left navigation sidebar elements', () => {
+      const sidebarRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-sidebar');
+      expect(sidebarRule).toBeDefined();
+      expect(sidebarRule?.customCss).toContain('margin-left: 0 !important;');
+
+      const combinedSelector = sidebarRule!.selectors!.join(', ');
+      const matched = homeDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('guide');
+      expect(matchedIds).toContain('guide-renderer');
+      expect(matchedIds).toContain('guide-wrapper');
+    });
+
+    it('accurately targets category chips bar on video feeds', () => {
+      const catRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-categories');
+      expect(catRule).toBeDefined();
+
+      const combinedSelector = catRule!.selectors!.join(', ');
+      const matched = homeDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('category-chips');
+      expect(matchedIds).toContain('chips-wrapper');
+    });
+
+    it('accurately targets mic, create button, notifications bell, and profile icon', () => {
+      const btnRule = youtubeAdapter.rules.find((r) => r.id === 'yt-hide-header-buttons');
+      expect(btnRule).toBeDefined();
+
+      const combinedSelector = btnRule!.selectors!.join(', ');
+      const matched = homeDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('voice-search-button');
+      expect(matchedIds).toContain('create-btn');
+      expect(matchedIds).toContain('notification-button');
+      expect(matchedIds).toContain('avatar-btn');
+
+      // The search bar must NOT be matched
+      expect(homeDoc.querySelector('#search')?.matches(combinedSelector)).toBe(false);
     });
   });
 
@@ -111,6 +186,68 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       const matchedIds = Array.from(matched).map((el) => el.id);
       expect(matchedIds).toContain('recent-posts-sidebar');
       expect(matchedIds).not.toContain('organic-post-1');
+    });
+  });
+
+  describe('Instagram Adapter Selectors', () => {
+    let igDoc: Document;
+
+    beforeEach(() => {
+      const parser = new DOMParser();
+      igDoc = parser.parseFromString(instagramHomeFixture, 'text/html');
+    });
+
+    it('accurately targets the bottom-right floating messages button', () => {
+      const floatRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-floating-messages');
+      expect(floatRule).toBeDefined();
+
+      const combinedSelector = floatRule!.selectors!.join(', ');
+      const matched = igDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('floating-chat-widget');
+
+      // The standard navigation messages link must NOT be matched
+      expect(igDoc.querySelector('#nav-messages')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets the right sidebar recommendations and profile container', () => {
+      const sidebarRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-right-sidebar');
+      expect(sidebarRule).toBeDefined();
+      expect(sidebarRule?.customCss).toContain('justify-content: center !important;');
+
+      const combinedSelector = sidebarRule!.selectors!.join(', ');
+      const matched = igDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('right-sidebar');
+
+      // Organic feed section must NOT be matched
+      expect(igDoc.querySelector('#feed-section')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets Reels, Search, Create, More, and Also from Meta without touching Home, Messages, or Notifications', () => {
+      const navRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-nav-buttons');
+      expect(navRule).toBeDefined();
+
+      const combinedSelector = navRule!.selectors!.join(', ');
+      const matched = igDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('nav-reels');
+      expect(matchedIds).toContain('nav-search');
+      expect(matchedIds).toContain('nav-create');
+      expect(matchedIds).toContain('nav-more');
+      expect(matchedIds).toContain('nav-threads');
+
+      // Home, Notifications, and Messages must NOT be matched
+      expect(igDoc.querySelector('#nav-home')?.matches(combinedSelector)).toBe(false);
+      expect(igDoc.querySelector('#nav-notifications')?.matches(combinedSelector)).toBe(false);
+      expect(igDoc.querySelector('#nav-messages')?.matches(combinedSelector)).toBe(false);
+      expect(igDoc.querySelector('#nav-profile')?.matches(combinedSelector)).toBe(false);
     });
   });
 });

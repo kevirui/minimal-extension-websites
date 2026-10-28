@@ -12,7 +12,8 @@ export default defineConfig({
     permissions: ['storage'],
     host_permissions: [
       '*://*.youtube.com/*',
-      '*://*.reddit.com/*'
+      '*://*.reddit.com/*',
+      '*://*.instagram.com/*'
     ],
     action: {
       default_title: 'ClearFrame Settings',
