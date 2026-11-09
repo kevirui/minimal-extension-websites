@@ -204,6 +204,14 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       igDoc = parser.parseFromString(instagramHomeFixture, 'text/html');
     });
 
+    it('provides rich customCss for Neo-Dark Minimalist Theme', () => {
+      const themeRule = instagramAdapter.rules.find((r) => r.id === 'ig-theme-modern-dark');
+      expect(themeRule).toBeDefined();
+      expect(themeRule?.customCss).toContain('--cf-ig-bg: #1e1f28 !important;');
+      expect(themeRule?.customCss).toContain('--cf-ig-surface-card: #282a36 !important;');
+      expect(themeRule?.customCss).toContain('--cf-ig-radius-card: 18px !important;');
+    });
+
     it('accurately targets the bottom-right floating messages button', () => {
       const floatRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-floating-messages');
       expect(floatRule).toBeDefined();

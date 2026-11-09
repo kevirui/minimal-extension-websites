@@ -1,8 +1,21 @@
 import { defineContentScript } from 'wxt/sandbox';
 import { defaultRegistry } from '@/core/registry';
-import { loadAppSettings, defaultStorageBackend } from '@/core/storage';
+import {
+  loadAppSettings,
+  loadCustomRulesForHostname,
+  saveCustomRule,
+  deleteCustomRule,
+  toggleCustomRule,
+  defaultStorageBackend,
+} from '@/core/storage';
 import { RuleEngine } from '@/core/engine';
-import { AppSettings, ExtensionMessage, ExtensionResponse } from '@/core/types';
+import { InspectorOverlay } from '@/core/inspectorOverlay';
+import {
+  AppSettings,
+  CustomRule,
+  ExtensionMessage,
+  ExtensionResponse,
+} from '@/core/types';
 import '@/adapters'; // Register adapters
 
 export default defineContentScript({
@@ -34,12 +47,18 @@ export default defineContentScript({
       }
     }
 
+    let currentCustomRules: CustomRule[] = [];
+
     const refreshSettingsAndApply = async () => {
       try {
         engine.setCurrentUrl(window.location.href);
-        const settings: AppSettings = await loadAppSettings(defaultRegistry.getAll());
+        const [settings, customRules]: [AppSettings, CustomRule[]] = await Promise.all([
+          loadAppSettings(defaultRegistry.getAll()),
+          loadCustomRulesForHostname(window.location.hostname),
+        ]);
+        currentCustomRules = customRules;
         const siteSettings = settings[adapter.id] || {};
-        engine.applySettings(siteSettings, window.location.href);
+        engine.applySettings(siteSettings, window.location.href, customRules);
       } catch (err) {
         console.error(`[ClearFrame] Failed to load/apply settings on ${adapter.id}:`, err);
       }
@@ -47,6 +66,23 @@ export default defineContentScript({
 
     // Initial load
     refreshSettingsAndApply();
+
+    // Inspector Overlay instance
+    let inspector: InspectorOverlay | null = null;
+
+    const getOrCreateInspector = (): InspectorOverlay => {
+      if (!inspector) {
+        inspector = new InspectorOverlay(window.document, {
+          onSaveRule: async (newRule) => {
+            await saveCustomRule(newRule, defaultStorageBackend, defaultRegistry.getAll());
+            await refreshSettingsAndApply();
+          },
+          onCancel: () => {},
+          onPreviewToggle: (_selector, _hidden) => {},
+        });
+      }
+      return inspector;
+    };
 
     // Listen to storage changes (persisted across tabs / popups)
     const cleanupStorage = defaultStorageBackend.onChange(() => {
@@ -71,7 +107,7 @@ export default defineContentScript({
         if (msg.type === 'CLEARFRAME_SETTINGS_UPDATED') {
           if (msg.siteId === adapter.id && msg.settings) {
             try {
-              engine.applySettings(msg.settings, window.location.href);
+              engine.applySettings(msg.settings, window.location.href, currentCustomRules);
               sendResponse({
                 type: 'CLEARFRAME_ACK',
                 success: true,
@@ -99,6 +135,7 @@ export default defineContentScript({
             active: true,
             appliedRules: engine.getAppliedRuleIds(),
             currentUrl: window.location.href,
+            customRulesCount: currentCustomRules.length,
           });
           return false;
         }
@@ -110,6 +147,7 @@ export default defineContentScript({
               siteId: adapter.id,
               active: true,
               appliedRules: engine.getAppliedRuleIds(),
+              customRules: currentCustomRules,
             });
           } else {
             sendResponse({
@@ -118,6 +156,61 @@ export default defineContentScript({
             });
           }
           return false;
+        }
+
+        // Inspector Mode Controls
+        if (msg.type === 'CLEARFRAME_START_INSPECTOR') {
+          try {
+            const inst = getOrCreateInspector();
+            inst.start();
+            sendResponse({ type: 'CLEARFRAME_ACK', success: true });
+          } catch (err) {
+            sendResponse({ type: 'CLEARFRAME_ERROR', error: String(err) });
+          }
+          return false;
+        }
+
+        if (msg.type === 'CLEARFRAME_CANCEL_INSPECTOR') {
+          if (inspector) {
+            inspector.stop();
+          }
+          sendResponse({ type: 'CLEARFRAME_ACK', success: true });
+          return false;
+        }
+
+        if (msg.type === 'CLEARFRAME_GET_CUSTOM_RULES') {
+          loadCustomRulesForHostname(window.location.hostname).then((rules) => {
+            currentCustomRules = rules;
+            sendResponse({
+              type: 'CLEARFRAME_CUSTOM_RULES_REPORT',
+              customRules: rules,
+            });
+          });
+          return true; // async response
+        }
+
+        if (msg.type === 'CLEARFRAME_SAVE_CUSTOM_RULE') {
+          saveCustomRule(msg.rule, defaultStorageBackend, defaultRegistry.getAll()).then(async () => {
+            await refreshSettingsAndApply();
+            sendResponse({ type: 'CLEARFRAME_ACK', success: true });
+          });
+          return true; // async response
+        }
+
+        if (msg.type === 'CLEARFRAME_DELETE_CUSTOM_RULE') {
+          deleteCustomRule(msg.ruleId, defaultStorageBackend, defaultRegistry.getAll()).then(async () => {
+            await refreshSettingsAndApply();
+            sendResponse({ type: 'CLEARFRAME_ACK', success: true });
+          });
+          return true; // async response
+        }
+
+        if (msg.type === 'CLEARFRAME_TOGGLE_CUSTOM_RULE') {
+          toggleCustomRule(msg.ruleId, msg.enabled, defaultStorageBackend, defaultRegistry.getAll()).then(async () => {
+            await refreshSettingsAndApply();
+            sendResponse({ type: 'CLEARFRAME_ACK', success: true });
+          });
+          return true; // async response
         }
 
         return false;
@@ -160,6 +253,10 @@ export default defineContentScript({
 
     // Clean up on page unload
     window.addEventListener('unload', () => {
+      if (inspector) {
+        inspector.stop();
+        inspector = null;
+      }
       if (messageListener && typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
         chrome.runtime.onMessage.removeListener(messageListener);
       }

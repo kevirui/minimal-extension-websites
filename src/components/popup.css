@@ -506,3 +506,98 @@ body {
   color: #6b7280;
   border: 1px solid #e5e7eb;
 }
+
+/* Inspector Mode Trigger Button & Custom Rules Styles */
+.min-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cf-inspect-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(10, 102, 194, 0.08);
+  border: 1px solid rgba(10, 102, 194, 0.25);
+  color: #0a66c2;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cf-inspect-trigger-btn:hover {
+  background: #0a66c2;
+  color: #ffffff;
+}
+
+.cf-btn-inspect-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #0a66c2;
+  color: #ffffff;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-top: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cf-btn-inspect-cta:hover {
+  background: #004182;
+}
+
+.min-custom-empty {
+  padding: 12px 16px;
+  font-size: 11.5px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.min-custom-rule-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 200px;
+}
+
+.min-custom-rule-selector {
+  font-size: 10px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: monospace;
+}
+
+.min-custom-rule-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.min-btn-delete-rule {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.min-btn-delete-rule:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}

@@ -1,8 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { defaultRegistry } from "../core/registry";
-import { loadAppSettings, setRuleEnabled } from "../core/storage";
+import {
+  loadAppSettings,
+  setRuleEnabled,
+  loadCustomRulesForHostname,
+  deleteCustomRule,
+  toggleCustomRule,
+} from "../core/storage";
 import {
   AppSettings,
+  CustomRule,
   ExtensionMessage,
   ExtensionResponse,
   RuleDefinition,
@@ -12,6 +19,39 @@ import "../adapters"; // Ensure all adapters are registered
 import "./popup.css";
 
 // SVG Icons matching the clean screenshot design
+const TargetIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
 const HomeIcon = () => (
   <svg
     width="15"
@@ -172,6 +212,7 @@ export const PopupApp: React.FC = () => {
 
   const [showShareMenu, setShowShareMenu] = useState<boolean>(false);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const [customRules, setCustomRules] = useState<CustomRule[]>([]);
 
   // Collapsible accordion state for sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -216,8 +257,16 @@ export const PopupApp: React.FC = () => {
       const adapter = defaultRegistry.matchByUrl(url);
       setMatchedAdapter(adapter);
 
-      const loaded = await loadAppSettings(defaultRegistry.getAll());
-      setSettings(loaded);
+      const parsed = url ? new URL(url) : null;
+      const hostname = parsed?.hostname || "";
+
+      const [loadedSettings, loadedCustom] = await Promise.all([
+        loadAppSettings(defaultRegistry.getAll()),
+        hostname ? loadCustomRulesForHostname(hostname) : Promise.resolve([]),
+      ]);
+
+      setSettings(loadedSettings);
+      setCustomRules(loadedCustom);
 
       // Ping content script to verify connectivity
       if (
@@ -348,34 +397,36 @@ export const PopupApp: React.FC = () => {
   const shareUrl = "https://chromewebstore.google.com";
   const shareText = "Distraction-Free Web with ClearFrame & Minimal Theme!";
 
-  const handleShareTo = (platform: "twitter" | "linkedin" | "facebook" | "whatsapp" | "copy") => {
+  const handleShareTo = (
+    platform: "twitter" | "linkedin" | "facebook" | "whatsapp" | "copy",
+  ) => {
     switch (platform) {
       case "twitter":
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
           "_blank",
-          "noopener,noreferrer"
+          "noopener,noreferrer",
         );
         break;
       case "linkedin":
         window.open(
           `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
           "_blank",
-          "noopener,noreferrer"
+          "noopener,noreferrer",
         );
         break;
       case "facebook":
         window.open(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
           "_blank",
-          "noopener,noreferrer"
+          "noopener,noreferrer",
         );
         break;
       case "whatsapp":
         window.open(
           `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`,
           "_blank",
-          "noopener,noreferrer"
+          "noopener,noreferrer",
         );
         break;
       case "copy":
@@ -391,6 +442,77 @@ export const PopupApp: React.FC = () => {
 
   const toggleShareMenu = () => {
     setShowShareMenu((prev) => !prev);
+  };
+
+  // Launch Inspector Mode in active tab
+  const handleStartInspector = async () => {
+    if (
+      !activeTabId ||
+      typeof chrome === "undefined" ||
+      !chrome.tabs?.sendMessage
+    ) {
+      return;
+    }
+    try {
+      const msg: ExtensionMessage = { type: "CLEARFRAME_START_INSPECTOR" };
+      await chrome.tabs.sendMessage(activeTabId, msg);
+      window.close(); // Close popup so user sees full screen
+    } catch (err) {
+      console.error("[ClearFrame] Failed to launch inspector:", err);
+      setErrorMessage(
+        "Could not launch inspector. Reload the page and try again.",
+      );
+    }
+  };
+
+  // Toggle custom rule
+  const handleToggleCustomRule = async (ruleId: string, enabled: boolean) => {
+    const updated = await toggleCustomRule(
+      ruleId,
+      !enabled,
+      undefined,
+      defaultRegistry.getAll(),
+    );
+    const parsed = activeTabUrl ? new URL(activeTabUrl) : null;
+    const host = parsed?.hostname || "";
+    setCustomRules(updated.filter((r) => r.hostname === host.toLowerCase()));
+
+    if (
+      activeTabId &&
+      typeof chrome !== "undefined" &&
+      chrome.tabs?.sendMessage
+    ) {
+      const msg: ExtensionMessage = {
+        type: "CLEARFRAME_TOGGLE_CUSTOM_RULE",
+        ruleId,
+        enabled: !enabled,
+      };
+      chrome.tabs.sendMessage(activeTabId, msg).catch(() => {});
+    }
+  };
+
+  // Delete custom rule
+  const handleDeleteCustomRule = async (ruleId: string) => {
+    const updated = await deleteCustomRule(
+      ruleId,
+      undefined,
+      defaultRegistry.getAll(),
+    );
+    const parsed = activeTabUrl ? new URL(activeTabUrl) : null;
+    const host = parsed?.hostname || "";
+    setCustomRules(updated.filter((r) => r.hostname === host.toLowerCase()));
+
+    if (
+      activeTabId &&
+      typeof chrome !== "undefined" &&
+      chrome.tabs?.sendMessage
+    ) {
+      const msg: ExtensionMessage = {
+        type: "CLEARFRAME_DELETE_CUSTOM_RULE",
+        ruleId,
+      };
+      chrome.tabs.sendMessage(activeTabId, msg).catch(() => {});
+    }
   };
 
   const parsedUrl = (() => {
@@ -460,16 +582,19 @@ export const PopupApp: React.FC = () => {
     <div className="min-window" data-testid="clearframe-popup">
       {/* Extension Header: Logo, Name, and Share Action */}
       <header className="min-navbar">
-        <div className="min-brand">
-          <div className="min-logo-box" aria-hidden="true">
-            <span className="min-in-logo">in</span>
-          </div>
-          <span className="min-app-title">
-            {matchedAdapter?.name ? matchedAdapter.name : "Minimal LinkedIn"}
-          </span>
-          {matchedAdapter && <span className="sr-only">Supported</span>}
-        </div>
         <div className="min-share-container">
+          {matchedAdapter && (
+            <button
+              type="button"
+              className="cf-inspect-trigger-btn"
+              onClick={handleStartInspector}
+              title="Inspect & Block Element (Inspector Mode)"
+              data-testid="start-inspector-btn"
+            >
+              <span>Inspect</span>
+            </button>
+          )}
+
           <button
             type="button"
             className="min-share-btn"
@@ -477,7 +602,6 @@ export const PopupApp: React.FC = () => {
             aria-label="Share"
             aria-expanded={showShareMenu}
           >
-            <ShareIcon />
             <span>Share</span>
           </button>
 
@@ -490,7 +614,7 @@ export const PopupApp: React.FC = () => {
                 onClick={() => handleShareTo("twitter")}
                 role="menuitem"
               >
-                <span>𝕏 Twitter / X</span>
+                <span>Twitter / X</span>
               </button>
               <button
                 type="button"
@@ -498,7 +622,7 @@ export const PopupApp: React.FC = () => {
                 onClick={() => handleShareTo("linkedin")}
                 role="menuitem"
               >
-                <span>in LinkedIn</span>
+                <span>LinkedIn</span>
               </button>
               <button
                 type="button"
@@ -506,7 +630,7 @@ export const PopupApp: React.FC = () => {
                 onClick={() => handleShareTo("facebook")}
                 role="menuitem"
               >
-                <span>f Facebook</span>
+                <span>Facebook</span>
               </button>
               <button
                 type="button"
@@ -514,7 +638,7 @@ export const PopupApp: React.FC = () => {
                 onClick={() => handleShareTo("whatsapp")}
                 role="menuitem"
               >
-                <span>💬 WhatsApp</span>
+                <span>WhatsApp</span>
               </button>
               <button
                 type="button"
@@ -522,7 +646,7 @@ export const PopupApp: React.FC = () => {
                 onClick={() => handleShareTo("copy")}
                 role="menuitem"
               >
-                <span>{copySuccess ? "✓ Link Copied!" : "📋 Copy Link"}</span>
+                <span>{copySuccess ? "Link Copied!" : "Copy Link"}</span>
               </button>
             </div>
           )}
@@ -563,12 +687,6 @@ export const PopupApp: React.FC = () => {
           </div>
         ) : !matchedAdapter ? (
           <div className="cf-empty-state" data-testid="empty-state">
-            <div className="min-empty-text">
-              <span className="cf-site-name">
-                {currentHostname || "No active web page"}
-              </span>
-              <span className="cf-badge cf-badge-inactive">Unsupported</span>
-            </div>
             <h3>Site Not Supported Yet</h3>
             <p>
               ClearFrame currently supports <strong>LinkedIn</strong>,{" "}
@@ -577,9 +695,6 @@ export const PopupApp: React.FC = () => {
           </div>
         ) : (
           <div className="min-rules-wrapper" data-testid="rules-list">
-            {/* OVERALL SECTION */}
-            <div className="min-section-header">OVERALL</div>
-
             <div className="min-rules-group">
               {matchedAdapter.rules.map((rule) => {
                 const siteSettings = settings?.[matchedAdapter.id] || {};
@@ -589,9 +704,6 @@ export const PopupApp: React.FC = () => {
                 return (
                   <div key={rule.id} className="min-rule-row">
                     <div className="min-rule-left">
-                      <span className="min-rule-icon" aria-hidden="true">
-                        {getRuleIcon(rule.id)}
-                      </span>
                       <span className="min-rule-label">{rule.label}</span>
                       {badge && (
                         <span
@@ -619,6 +731,65 @@ export const PopupApp: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* CUSTOM RULES SECTION */}
+            <div className="min-section-header">
+              CUSTOM RULES ({customRules.length})
+            </div>
+
+            {customRules.length === 0 ? (
+              <div className="min-custom-empty">
+                <p>
+                  No custom rules yet. Click <strong>Inspect</strong> to hide
+                  any element.
+                </p>
+              </div>
+            ) : (
+              <div className="min-rules-group" data-testid="custom-rules-list">
+                {customRules.map((rule) => (
+                  <div key={rule.id} className="min-rule-row">
+                    <div className="min-rule-left">
+                      <span className="min-rule-icon" aria-hidden="true">
+                        <TargetIcon />
+                      </span>
+                      <div className="min-custom-rule-text">
+                        <span className="min-rule-label">{rule.name}</span>
+                        <span
+                          className="min-custom-rule-selector"
+                          title={rule.selector}
+                        >
+                          {rule.selector}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="min-custom-rule-actions">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rule.enabled}
+                        aria-label={`Toggle ${rule.name}`}
+                        onClick={() =>
+                          handleToggleCustomRule(rule.id, rule.enabled)
+                        }
+                        className={`min-toggle ${rule.enabled ? "min-toggle-active" : ""}`}
+                      >
+                        <span className="min-toggle-circle" />
+                      </button>
+                      <button
+                        type="button"
+                        className="min-btn-delete-rule"
+                        title="Delete Rule"
+                        aria-label={`Delete ${rule.name}`}
+                        onClick={() => handleDeleteCustomRule(rule.id)}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

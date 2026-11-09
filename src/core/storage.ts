@@ -1,4 +1,10 @@
-import { AppSettings, PersistedAppSettings, SiteAdapter, SiteSettings } from './types';
+import {
+  AppSettings,
+  CustomRule,
+  PersistedAppSettings,
+  SiteAdapter,
+  SiteSettings,
+} from './types';
 
 export const STORAGE_KEY = 'clearframe_settings';
 export const CURRENT_SETTINGS_VERSION = 1;
@@ -7,8 +13,8 @@ export const CURRENT_SETTINGS_VERSION = 1;
  * Validates, migrates, and normalizes settings against registered adapter specifications.
  * Safely handles missing, outdated, or corrupted stored configurations.
  * 
- * Supports both:
- * - V1 Versioned Schema: { version: 1, sites: { youtube: { ... } } }
+ * Supports:
+ * - V1 Versioned Schema: { version: 1, sites: { youtube: { ... } }, customRules: [ ... ] }
  * - Legacy unversioned raw map: { youtube: { ... } }
  */
 export function normalizeSettings(
@@ -52,12 +58,42 @@ export function normalizeSettings(
 }
 
 /**
- * Packs in-memory AppSettings into the persisted, versioned schema format.
+ * Normalizes custom rules array from raw storage.
  */
-export function toPersistedFormat(settings: AppSettings): PersistedAppSettings {
+export function normalizeCustomRules(raw: unknown): CustomRule[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return [];
+  }
+  const rawObj = raw as Record<string, unknown>;
+  const rulesList = Array.isArray(rawObj.customRules) ? rawObj.customRules : [];
+  
+  return rulesList
+    .filter((r): r is Record<string, unknown> => typeof r === 'object' && r !== null)
+    .filter((r) => typeof r.id === 'string' && typeof r.selector === 'string' && typeof r.hostname === 'string')
+    .map((r) => ({
+      id: String(r.id),
+      name: typeof r.name === 'string' ? r.name : 'Custom Rule',
+      hostname: String(r.hostname).toLowerCase(),
+      selector: String(r.selector),
+      enabled: typeof r.enabled === 'boolean' ? r.enabled : true,
+      createdAt: typeof r.createdAt === 'number' ? r.createdAt : Date.now(),
+      strategy: 'hide' as const,
+      targetMode: r.targetMode === 'single' ? ('single' as const) : ('all' as const),
+      version: typeof r.version === 'number' ? r.version : 1,
+    }));
+}
+
+/**
+ * Packs in-memory AppSettings and custom rules into the persisted, versioned schema format.
+ */
+export function toPersistedFormat(
+  settings: AppSettings,
+  customRules: CustomRule[] = []
+): PersistedAppSettings {
   return {
     version: CURRENT_SETTINGS_VERSION,
     sites: settings,
+    customRules,
   };
 }
 
@@ -166,14 +202,115 @@ export async function loadAppSettings(
 }
 
 /**
- * Saves entire settings object in versioned schema.
+ * Loads all custom rules from storage.
+ */
+export async function loadCustomRules(
+  backend: StorageBackend = defaultStorageBackend
+): Promise<CustomRule[]> {
+  try {
+    const raw = await backend.get(STORAGE_KEY);
+    return normalizeCustomRules(raw);
+  } catch (err) {
+    console.warn('[ClearFrame] Failed to read custom rules:', err);
+    return [];
+  }
+}
+
+/**
+ * Loads custom rules matching a specific hostname (handles subdomains cleanly).
+ */
+export async function loadCustomRulesForHostname(
+  hostname: string,
+  backend: StorageBackend = defaultStorageBackend
+): Promise<CustomRule[]> {
+  const all = await loadCustomRules(backend);
+  const normalizedHost = hostname.toLowerCase();
+  return all.filter((r) => {
+    const ruleHost = r.hostname.toLowerCase();
+    return normalizedHost === ruleHost || normalizedHost.endsWith(`.${ruleHost}`) || ruleHost.endsWith(`.${normalizedHost}`);
+  });
+}
+
+/**
+ * Saves entire settings object and custom rules in versioned schema.
  */
 export async function saveAppSettings(
   settings: AppSettings,
-  backend: StorageBackend = defaultStorageBackend
+  backend: StorageBackend = defaultStorageBackend,
+  customRules?: CustomRule[]
 ): Promise<void> {
-  const persisted = toPersistedFormat(settings);
+  const rules = customRules !== undefined ? customRules : await loadCustomRules(backend);
+  const persisted = toPersistedFormat(settings, rules);
   await backend.set(STORAGE_KEY, persisted);
+}
+
+/**
+ * Saves or updates a custom rule using the WriteMutex.
+ */
+export async function saveCustomRule(
+  rule: CustomRule,
+  backend: StorageBackend = defaultStorageBackend,
+  adapters: SiteAdapter[] = []
+): Promise<CustomRule[]> {
+  return storageMutex.run(async () => {
+    const raw = await backend.get(STORAGE_KEY);
+    const currentSettings = normalizeSettings(raw, adapters);
+    const currentRules = normalizeCustomRules(raw);
+
+    const existingIndex = currentRules.findIndex((r) => r.id === rule.id);
+    let updatedRules: CustomRule[];
+    if (existingIndex >= 0) {
+      updatedRules = [...currentRules];
+      updatedRules[existingIndex] = { ...rule };
+    } else {
+      updatedRules = [...currentRules, { ...rule }];
+    }
+
+    const persisted = toPersistedFormat(currentSettings, updatedRules);
+    await backend.set(STORAGE_KEY, persisted);
+    return updatedRules;
+  });
+}
+
+/**
+ * Deletes a custom rule by ID.
+ */
+export async function deleteCustomRule(
+  ruleId: string,
+  backend: StorageBackend = defaultStorageBackend,
+  adapters: SiteAdapter[] = []
+): Promise<CustomRule[]> {
+  return storageMutex.run(async () => {
+    const raw = await backend.get(STORAGE_KEY);
+    const currentSettings = normalizeSettings(raw, adapters);
+    const currentRules = normalizeCustomRules(raw);
+
+    const updatedRules = currentRules.filter((r) => r.id !== ruleId);
+    const persisted = toPersistedFormat(currentSettings, updatedRules);
+    await backend.set(STORAGE_KEY, persisted);
+    return updatedRules;
+  });
+}
+
+/**
+ * Toggles a custom rule's enabled state.
+ */
+export async function toggleCustomRule(
+  ruleId: string,
+  enabled: boolean,
+  backend: StorageBackend = defaultStorageBackend,
+  adapters: SiteAdapter[] = []
+): Promise<CustomRule[]> {
+  return storageMutex.run(async () => {
+    const raw = await backend.get(STORAGE_KEY);
+    const currentSettings = normalizeSettings(raw, adapters);
+    const currentRules = normalizeCustomRules(raw);
+
+    const updatedRules = currentRules.map((r) => (r.id === ruleId ? { ...r, enabled } : r));
+    const persisted = toPersistedFormat(currentSettings, updatedRules);
+    await backend.set(STORAGE_KEY, persisted);
+    return updatedRules;
+  });
 }
 
 /**
@@ -188,9 +325,9 @@ export async function setRuleEnabled(
   backend: StorageBackend = defaultStorageBackend
 ): Promise<AppSettings> {
   return storageMutex.run(async () => {
-    // Read freshest raw storage state
     const raw = await backend.get(STORAGE_KEY);
     const current = normalizeSettings(raw, adapters);
+    const currentRules = normalizeCustomRules(raw);
 
     const updated: AppSettings = {
       ...current,
@@ -200,7 +337,8 @@ export async function setRuleEnabled(
       },
     };
 
-    await saveAppSettings(updated, backend);
+    const persisted = toPersistedFormat(updated, currentRules);
+    await backend.set(STORAGE_KEY, persisted);
     return updated;
   });
 }

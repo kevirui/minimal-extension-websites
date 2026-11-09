@@ -1,6 +1,12 @@
-import { RuleDefinition, SiteAdapter, SiteSettings } from './types';
+import {
+  CustomRule,
+  RuleDefinition,
+  SiteAdapter,
+  SiteSettings,
+} from './types';
 
 export const STYLE_ELEMENT_PREFIX = 'clearframe-rule-';
+export const CUSTOM_STYLE_PREFIX = 'clearframe-custom-';
 
 export interface RuleEngineContext {
   document: Document;
@@ -9,9 +15,11 @@ export interface RuleEngineContext {
 export class RuleEngine {
   private activeCleanups = new Map<string, () => void>();
   private activeStyleElements = new Map<string, HTMLStyleElement>();
+  private activeCustomStyles = new Map<string, HTMLStyleElement>();
   private observer: MutationObserver | null = null;
   private isObserving = false;
   private currentSettings: SiteSettings = {};
+  private customRules: CustomRule[] = [];
   private currentUrl: URL | null = null;
   private adapter: SiteAdapter;
   private doc: Document;
@@ -51,15 +59,15 @@ export class RuleEngine {
   }
 
   /**
-   * Applies the current site settings taking route applicability into account.
-   * Manages rule-specific dedicated style elements for perfect ownership and reversibility.
-   * If a rule is enabled by the user but currently not applicable on this route,
-   * its style is cleaned up to prevent stale effects.
+   * Applies both native adapter settings and custom rules.
    */
-  public applySettings(settings: SiteSettings, url?: URL | string): void {
+  public applySettings(settings: SiteSettings, url?: URL | string, customRules?: CustomRule[]): void {
     this.currentSettings = { ...settings };
     if (url) {
       this.setCurrentUrl(url);
+    }
+    if (customRules !== undefined) {
+      this.applyCustomRules(customRules);
     }
 
     for (const rule of this.adapter.rules) {
@@ -106,6 +114,67 @@ export class RuleEngine {
 
     // 3. Ensure observer is active if any active dynamic rule needs subtree observation
     this.ensureObserver();
+  }
+
+  /**
+   * Applies custom user rules dynamically with isolated style tags.
+   */
+  public applyCustomRules(rules: CustomRule[]): void {
+    this.customRules = [...rules];
+    const incomingIds = new Set(rules.map((r) => r.id));
+
+    // Remove any custom rules no longer present or disabled
+    for (const [ruleId] of this.activeCustomStyles.entries()) {
+      const currentRule = rules.find((r) => r.id === ruleId);
+      if (!currentRule || !currentRule.enabled) {
+        this.removeCustomCssRule(ruleId);
+      }
+    }
+
+    // Apply enabled custom rules
+    for (const rule of rules) {
+      if (rule.enabled && rule.selector) {
+        this.applyCustomCssRule(rule);
+      } else {
+        this.removeCustomCssRule(rule.id);
+      }
+    }
+  }
+
+  private applyCustomCssRule(rule: CustomRule): void {
+    const styleId = `${CUSTOM_STYLE_PREFIX}${rule.id}`;
+    let styleEl = this.activeCustomStyles.get(rule.id);
+
+    if (!styleEl || !this.doc.contains(styleEl)) {
+      const existing = this.doc.getElementById(styleId) as HTMLStyleElement | null;
+      if (existing) {
+        styleEl = existing;
+      } else {
+        styleEl = this.doc.createElement('style');
+        styleEl.id = styleId;
+        styleEl.setAttribute('data-clearframe-custom', rule.id);
+        styleEl.setAttribute('data-clearframe-hostname', rule.hostname);
+        (this.doc.head || this.doc.documentElement).appendChild(styleEl);
+      }
+      this.activeCustomStyles.set(rule.id, styleEl);
+    }
+
+    const cssContent = `/* [ClearFrame Custom Rule] ${rule.name} (${rule.id}) */\n${rule.selector} {\n  display: none !important;\n}`;
+    if (styleEl.textContent !== cssContent) {
+      styleEl.textContent = cssContent;
+    }
+  }
+
+  private removeCustomCssRule(ruleId: string): void {
+    const styleId = `${CUSTOM_STYLE_PREFIX}${ruleId}`;
+    const styleEl = this.activeCustomStyles.get(ruleId) || (this.doc.getElementById(styleId) as HTMLStyleElement | null);
+
+    if (styleEl) {
+      if (styleEl.parentNode) {
+        styleEl.parentNode.removeChild(styleEl);
+      }
+      this.activeCustomStyles.delete(ruleId);
+    }
   }
 
   /**
@@ -221,6 +290,13 @@ export class RuleEngine {
   }
 
   /**
+   * Returns list of currently active custom rules.
+   */
+  public getAppliedCustomRules(): CustomRule[] {
+    return this.customRules.filter((r) => r.enabled);
+  }
+
+  /**
    * Completely tears down all injected styles, observers, and custom rule cleanups.
    */
   public destroy(): void {
@@ -245,5 +321,11 @@ export class RuleEngine {
       this.removeCssRule(rule.id);
     }
     this.activeStyleElements.clear();
+
+    // Remove all custom rule styles
+    for (const rule of this.customRules) {
+      this.removeCustomCssRule(rule.id);
+    }
+    this.activeCustomStyles.clear();
   }
 }

@@ -10,7 +10,7 @@ import {
   getDefaultSettings,
 } from '../core/storage';
 import { MemoryStorageBackend } from '../core/memoryStorage';
-import { ExtensionMessage, ExtensionResponse } from '../core/types';
+import { CustomRule, ExtensionMessage, ExtensionResponse } from '../core/types';
 import {
   youtubeHomeFixture,
   youtubeWatchFixture,
@@ -52,6 +52,7 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     expect(loaded.youtube['yt-hide-comments']).toBe(false);
 
     expect(loaded.instagram).toBeDefined();
+    expect(loaded.instagram['ig-theme-modern-dark']).toBe(false);
     expect(loaded.instagram['ig-hide-floating-messages']).toBe(false);
     expect(loaded.instagram['ig-hide-right-sidebar']).toBe(false);
     expect(loaded.instagram['ig-hide-feed']).toBe(false);
@@ -173,5 +174,50 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     // Even on domain containing substring (e.g. deceptive domain)
     const spoofUrl = 'https://youtube.com.evil.org/';
     expect(defaultRegistry.matchByUrl(spoofUrl)).toBeUndefined();
+  });
+
+  // SCENARIO G: Custom Rules Application & Reversibility
+  it('Scenario G: applies custom user rule, tests live hiding, dynamic addition, and clean removal', () => {
+    const doc = parser.parseFromString(
+      `<!DOCTYPE html>
+      <html>
+        <body>
+          <div class="user-sidebar" id="custom-target">Custom Sidebar Content</div>
+          <div class="feed-content" id="keep-target">Important Content</div>
+        </body>
+      </html>`,
+      'text/html'
+    );
+
+    const engine = new RuleEngine(youtubeAdapter, { document: doc });
+    const url = new URL('https://www.youtube.com/');
+
+    const customRule: CustomRule = {
+      id: 'custom-widget-1',
+      name: 'Hide User Sidebar',
+      hostname: 'www.youtube.com',
+      selector: '#custom-target',
+      enabled: true,
+      createdAt: Date.now(),
+      strategy: 'hide',
+      version: 1,
+    };
+
+    // Apply with custom rule
+    engine.applySettings({}, url, [customRule]);
+
+    const customStyle = doc.getElementById('clearframe-custom-custom-widget-1');
+    expect(customStyle).not.toBeNull();
+    expect(customStyle!.textContent).toContain('#custom-target {\n  display: none !important;\n}');
+
+    // Disable custom rule
+    engine.applyCustomRules([{ ...customRule, enabled: false }]);
+    expect(doc.getElementById('clearframe-custom-custom-widget-1')).toBeNull();
+
+    // Re-enable and then destroy
+    engine.applyCustomRules([customRule]);
+    expect(doc.getElementById('clearframe-custom-custom-widget-1')).not.toBeNull();
+    engine.destroy();
+    expect(doc.getElementById('clearframe-custom-custom-widget-1')).toBeNull();
   });
 });

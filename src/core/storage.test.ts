@@ -6,6 +6,10 @@ import {
   saveAppSettings,
   setRuleEnabled,
   toPersistedFormat,
+  loadCustomRulesForHostname,
+  saveCustomRule,
+  deleteCustomRule,
+  toggleCustomRule,
   CURRENT_SETTINGS_VERSION,
 } from './storage';
 import { MemoryStorageBackend } from './memoryStorage';
@@ -13,7 +17,7 @@ import { youtubeAdapter } from '../adapters/youtube';
 import { redditAdapter } from '../adapters/reddit';
 import { instagramAdapter } from '../adapters/instagram';
 import { linkedinAdapter } from '../adapters/linkedin';
-import { SiteAdapter } from './types';
+import { CustomRule, SiteAdapter } from './types';
 
 describe('Storage, Migration, and Settings Validation', () => {
   const adapters = [youtubeAdapter, redditAdapter, instagramAdapter, linkedinAdapter];
@@ -203,3 +207,46 @@ describe('Storage, Migration, and Settings Validation', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });
+
+
+  describe('Custom Rules Storage & Domain Filtering', () => {
+    it('saves, retrieves, and toggles custom rules with domain matching', async () => {
+      const backend = new MemoryStorageBackend();
+      const mockRule: CustomRule = {
+        id: 'rule-test-1',
+        name: 'Sponsored Sidebar',
+        hostname: 'www.linkedin.com',
+        selector: '.ad-banner',
+        enabled: true,
+        createdAt: 1000,
+        strategy: 'hide',
+        version: 1,
+      };
+
+      // Save custom rule
+      await saveCustomRule(mockRule, backend, [youtubeAdapter]);
+
+      // Load for exact hostname
+      const linkedinRules = await loadCustomRulesForHostname('www.linkedin.com', backend);
+      expect(linkedinRules).toHaveLength(1);
+      expect(linkedinRules[0].name).toBe('Sponsored Sidebar');
+
+      // Load for subdomain or parent domain
+      const rootLinkedinRules = await loadCustomRulesForHostname('linkedin.com', backend);
+      expect(rootLinkedinRules).toHaveLength(1);
+
+      // Verify domain isolation: unrelated domain must NOT see linkedin custom rules
+      const youtubeRules = await loadCustomRulesForHostname('www.youtube.com', backend);
+      expect(youtubeRules).toHaveLength(0);
+
+      // Toggle rule enabled state
+      await toggleCustomRule('rule-test-1', false, backend, [youtubeAdapter]);
+      const updated = await loadCustomRulesForHostname('www.linkedin.com', backend);
+      expect(updated[0].enabled).toBe(false);
+
+      // Delete rule
+      await deleteCustomRule('rule-test-1', backend, [youtubeAdapter]);
+      const remaining = await loadCustomRulesForHostname('www.linkedin.com', backend);
+      expect(remaining).toHaveLength(0);
+    });
+  });
