@@ -13,7 +13,8 @@ export default defineConfig({
     host_permissions: [
       '*://*.youtube.com/*',
       '*://*.reddit.com/*',
-      '*://*.instagram.com/*'
+      '*://*.instagram.com/*',
+      '*://*.linkedin.com/*'
     ],
     action: {
       default_title: 'ClearFrame Settings',

@@ -10,6 +10,7 @@ export default defineContentScript({
     '*://*.youtube.com/*',
     '*://*.reddit.com/*',
     '*://*.instagram.com/*',
+    '*://*.linkedin.com/*',
   ],
   runAt: 'document_start',
   main() {

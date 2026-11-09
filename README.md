@@ -6,8 +6,15 @@
 
 ## Features
 
-- **Multi-Site Architecture**: Extensible site adapter architecture with independent rules for **YouTube**, **Reddit**, and **Instagram**.
+- **Multi-Site Architecture**: Extensible site adapter architecture with independent rules for **YouTube**, **Reddit**, **Instagram**, and **LinkedIn**.
 - **Distraction-Free Controls**:
+  - **LinkedIn** *(inspired by Minimal Theme for LinkedIn)*:
+    - Hide Algorithmic Feed (Focus Mode / anti-doomscrolling).
+    - Hide Promoted Posts & Sponsored Ads.
+    - Hide Right Sidebar (News & Trends) with feed centering.
+    - Hide Left Profile / Analytics Sidebar.
+    - Hide Floating Messaging Popup (#msg-overlay).
+    - Simplify Top Navigation Bar (hide Premium and Business upsells).
   - **YouTube**:
     - Hide Shorts (navigation links, shelves, reel sections, and tabs).
     - Hide Left Sidebar & clean home video grid centering.
@@ -19,19 +26,21 @@
     - Hide Related Videos on Watch Pages.
     - Hide Comments.
   - **Instagram**:
+    - Hide Algorithmic Feed (Focus Mode / anti-doomscrolling).
+    - Hide Stories Tray (top carousel).
     - Hide Floating Messages Button (floating chat pill in bottom-right corner).
     - Hide Right Sidebar (profile switcher, suggestions for you, footer links) and center main feed.
-    - Hide Reels, Search, Create, More, and Also from Meta navigation buttons.
+    - Simplify Navigation (Home, Messages & Profile only with permanent labels).
   - **Reddit**:
     - Hide Promoted Posts & Ads across Shreddit, New Reddit, and Old Reddit.
     - Hide "Recent Posts" and recommended community carousels.
 - **Instant Updates**: Toggle rules on and off with zero-reload dynamic CSS updates.
-- **Single-Page Application (SPA) Support**: Automatically applies and preserves rules across YouTube, Instagram, and Reddit client-side routing.
+- **Single-Page Application (SPA) Support**: Automatically applies and preserves rules across YouTube, Instagram, Reddit, and LinkedIn client-side routing.
 - **Privacy First & Local Storage**:
   - No remote code or third-party servers.
   - Zero analytics, tracking, or telemetry.
   - Strictly relies on `chrome.storage.local`.
-  - Minimal host permissions: only `*://*.youtube.com/*`, `*://*.reddit.com/*`, and `*://*.instagram.com/*`.
+  - Minimal host permissions: only `*://*.youtube.com/*`, `*://*.reddit.com/*`, `*://*.instagram.com/*`, and `*://*.linkedin.com/*`.
 
 ---
 

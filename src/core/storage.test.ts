@@ -12,10 +12,11 @@ import { MemoryStorageBackend } from './memoryStorage';
 import { youtubeAdapter } from '../adapters/youtube';
 import { redditAdapter } from '../adapters/reddit';
 import { instagramAdapter } from '../adapters/instagram';
+import { linkedinAdapter } from '../adapters/linkedin';
 import { SiteAdapter } from './types';
 
 describe('Storage, Migration, and Settings Validation', () => {
-  const adapters = [youtubeAdapter, redditAdapter, instagramAdapter];
+  const adapters = [youtubeAdapter, redditAdapter, instagramAdapter, linkedinAdapter];
   let memoryBackend: MemoryStorageBackend;
 
   beforeEach(() => {
@@ -43,7 +44,17 @@ describe('Storage, Migration, and Settings Validation', () => {
     expect(defaults.instagram).toBeDefined();
     expect(defaults.instagram['ig-hide-floating-messages']).toBe(false);
     expect(defaults.instagram['ig-hide-right-sidebar']).toBe(false);
+    expect(defaults.instagram['ig-hide-feed']).toBe(false);
+    expect(defaults.instagram['ig-hide-stories-tray']).toBe(false);
     expect(defaults.instagram['ig-hide-nav-buttons']).toBe(false);
+
+    expect(defaults.linkedin).toBeDefined();
+    expect(defaults.linkedin['li-hide-feed']).toBe(false);
+    expect(defaults.linkedin['li-hide-promoted']).toBe(true);
+    expect(defaults.linkedin['li-hide-right-sidebar']).toBe(false);
+    expect(defaults.linkedin['li-hide-left-sidebar']).toBe(false);
+    expect(defaults.linkedin['li-hide-floating-messages']).toBe(false);
+    expect(defaults.linkedin['li-clean-nav-header']).toBe(false);
   });
 
   it('safely handles missing, empty, or null stored values', () => {

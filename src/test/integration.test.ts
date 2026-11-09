@@ -54,7 +54,17 @@ describe('End-to-End Workflow & Integration Scenarios (Deterministic)', () => {
     expect(loaded.instagram).toBeDefined();
     expect(loaded.instagram['ig-hide-floating-messages']).toBe(false);
     expect(loaded.instagram['ig-hide-right-sidebar']).toBe(false);
+    expect(loaded.instagram['ig-hide-feed']).toBe(false);
+    expect(loaded.instagram['ig-hide-stories-tray']).toBe(false);
     expect(loaded.instagram['ig-hide-nav-buttons']).toBe(false);
+
+    expect(loaded.linkedin).toBeDefined();
+    expect(loaded.linkedin['li-hide-feed']).toBe(false);
+    expect(loaded.linkedin['li-hide-promoted']).toBe(true);
+    expect(loaded.linkedin['li-hide-right-sidebar']).toBe(false);
+    expect(loaded.linkedin['li-hide-left-sidebar']).toBe(false);
+    expect(loaded.linkedin['li-hide-floating-messages']).toBe(false);
+    expect(loaded.linkedin['li-clean-nav-header']).toBe(false);
   });
 
   // SCENARIO B: Toggle & DOM Visibility

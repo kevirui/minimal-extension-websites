@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { youtubeAdapter } from './youtube';
 import { redditAdapter } from './reddit';
 import { instagramAdapter } from './instagram';
-import { youtubeHomeFixture, youtubeWatchFixture, redditFeedFixture, instagramHomeFixture } from '../test/fixtures';
+import { linkedinAdapter } from './linkedin';
+import {
+  youtubeHomeFixture,
+  youtubeWatchFixture,
+  redditFeedFixture,
+  instagramHomeFixture,
+  linkedinHomeFixture,
+} from '../test/fixtures';
 
 describe('Selector Behavior Against Representative DOM Fixtures', () => {
   describe('YouTube Adapter Selectors', () => {
@@ -228,9 +235,44 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       expect(igDoc.querySelector('#feed-section')?.matches(combinedSelector)).toBe(false);
     });
 
-    it('accurately targets Reels, Search, Create, More, and Also from Meta without touching Home, Messages, or Notifications', () => {
+    it('accurately targets the home feed posts to eliminate doomscrolling in focus mode', () => {
+      const feedRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-feed');
+      expect(feedRule).toBeDefined();
+
+      const combinedSelector = feedRule!.selectors!.join(', ');
+      const matched = igDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('feed-section');
+      expect(matchedIds).toContain('post-1');
+      expect(matchedIds).toContain('post-2');
+
+      // Floating messages and navigation must NOT be matched
+      expect(igDoc.querySelector('#nav-home')?.matches(combinedSelector)).toBe(false);
+      expect(igDoc.querySelector('#floating-chat-widget')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets the top stories carousel tray on home feed', () => {
+      const storiesRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-stories-tray');
+      expect(storiesRule).toBeDefined();
+
+      const combinedSelector = storiesRule!.selectors!.join(', ');
+      const matched = igDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('stories-tray-wrapper');
+
+      // Main posts section must NOT be matched
+      expect(igDoc.querySelector('#feed-section')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately keeps only Home, Messages, and Profile while hiding Reels, Search, Explore, Notifications, Create, More, and Threads', () => {
       const navRule = instagramAdapter.rules.find((r) => r.id === 'ig-hide-nav-buttons');
       expect(navRule).toBeDefined();
+      expect(navRule?.customCss).toContain('width: 220px !important;');
+      expect(navRule?.customCss).toContain('visibility: visible !important;');
 
       const combinedSelector = navRule!.selectors!.join(', ');
       const matched = igDoc.querySelectorAll(combinedSelector);
@@ -239,15 +281,122 @@ describe('Selector Behavior Against Representative DOM Fixtures', () => {
       const matchedIds = Array.from(matched).map((el) => el.id);
       expect(matchedIds).toContain('nav-reels');
       expect(matchedIds).toContain('nav-search');
+      expect(matchedIds).toContain('nav-explore');
+      expect(matchedIds).toContain('nav-notifications');
       expect(matchedIds).toContain('nav-create');
       expect(matchedIds).toContain('nav-more');
       expect(matchedIds).toContain('nav-threads');
 
-      // Home, Notifications, and Messages must NOT be matched
+      // Crucial: Home, Messages, and Profile MUST NOT be matched
       expect(igDoc.querySelector('#nav-home')?.matches(combinedSelector)).toBe(false);
-      expect(igDoc.querySelector('#nav-notifications')?.matches(combinedSelector)).toBe(false);
       expect(igDoc.querySelector('#nav-messages')?.matches(combinedSelector)).toBe(false);
       expect(igDoc.querySelector('#nav-profile')?.matches(combinedSelector)).toBe(false);
+    });
+  });
+
+  describe('LinkedIn Adapter Selectors (Minimal Theme)', () => {
+    let liDoc: Document;
+
+    beforeEach(() => {
+      const parser = new DOMParser();
+      liDoc = parser.parseFromString(linkedinHomeFixture, 'text/html');
+    });
+
+    it('accurately targets the main feed to eliminate doomscrolling', () => {
+      const feedRule = linkedinAdapter.rules.find((r) => r.id === 'li-hide-feed');
+      expect(feedRule).toBeDefined();
+
+      const combinedSelector = feedRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('voyager-feed');
+      expect(matchedIds).toContain('feed-container');
+
+      // Top nav and sidebars must NOT be matched
+      expect(liDoc.querySelector('#nav-home')?.matches(combinedSelector)).toBe(false);
+      expect(liDoc.querySelector('#left-sidebar')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets promoted posts and standalone ad banners', () => {
+      const promotedRule = linkedinAdapter.rules.find((r) => r.id === 'li-hide-promoted');
+      expect(promotedRule).toBeDefined();
+
+      const combinedSelector = promotedRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('promoted-post-1');
+      expect(matchedIds).toContain('sidebar-ad');
+
+      // Organic posts MUST NOT be matched
+      expect(liDoc.querySelector('#organic-post-1')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets right sidebar with news and trends and provides centering CSS', () => {
+      const rightRule = linkedinAdapter.rules.find((r) => r.id === 'li-hide-right-sidebar');
+      expect(rightRule).toBeDefined();
+      expect(rightRule?.customCss).toContain('justify-content: center !important;');
+
+      const combinedSelector = rightRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('right-sidebar');
+      expect(matchedIds).toContain('news-widget');
+
+      // Main column must NOT be matched
+      expect(liDoc.querySelector('#main-column')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets left profile & analytics sidebar', () => {
+      const leftRule = linkedinAdapter.rules.find((r) => r.id === 'li-hide-left-sidebar');
+      expect(leftRule).toBeDefined();
+
+      const combinedSelector = leftRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('left-sidebar');
+      expect(matchedIds).toContain('identity-card');
+    });
+
+    it('accurately targets the persistent floating messaging popup', () => {
+      const msgRule = linkedinAdapter.rules.find((r) => r.id === 'li-hide-floating-messages');
+      expect(msgRule).toBeDefined();
+
+      const combinedSelector = msgRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('msg-overlay');
+
+      // Navigation Messaging link must NOT be matched
+      expect(liDoc.querySelector('#nav-messaging')?.matches(combinedSelector)).toBe(false);
+    });
+
+    it('accurately targets top navigation upsells and business launcher', () => {
+      const navRule = linkedinAdapter.rules.find((r) => r.id === 'li-clean-nav-header');
+      expect(navRule).toBeDefined();
+
+      const combinedSelector = navRule!.selectors!.join(', ');
+      const matched = liDoc.querySelectorAll(combinedSelector);
+
+      expect(matched.length).toBeGreaterThan(0);
+      const matchedIds = Array.from(matched).map((el) => el.id);
+      expect(matchedIds).toContain('nav-premium');
+      expect(matchedIds).toContain('nav-business');
+
+      // Primary navigation items (Home, Network, Jobs, Messaging) must NOT be matched
+      expect(liDoc.querySelector('#nav-home')?.matches(combinedSelector)).toBe(false);
+      expect(liDoc.querySelector('#nav-network')?.matches(combinedSelector)).toBe(false);
+      expect(liDoc.querySelector('#nav-jobs')?.matches(combinedSelector)).toBe(false);
+      expect(liDoc.querySelector('#nav-messaging')?.matches(combinedSelector)).toBe(false);
     });
   });
 });

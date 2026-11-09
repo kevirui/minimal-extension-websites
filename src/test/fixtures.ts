@@ -217,7 +217,13 @@ export const instagramHomeFixture = `
       <span>Search</span>
     </div>
 
-    <!-- Notifications (keep in nav) -->
+    <!-- Explore (hide) -->
+    <a href="/explore/" id="nav-explore">
+      <svg aria-label="Explore"><path></path></svg>
+      <span>Explore</span>
+    </a>
+
+    <!-- Notifications (hide in simplified nav) -->
     <a href="#" id="nav-notifications">
       <svg aria-label="Notifications"><path></path></svg>
       <span>Notifications</span>
@@ -249,6 +255,16 @@ export const instagramHomeFixture = `
 
   <!-- Main Feed Area -->
   <main role="main">
+    <!-- Stories Carousel Tray -->
+    <div id="stories-tray-wrapper">
+      <div role="menu" aria-label="Stories" id="stories-tray">
+        <ul role="list">
+          <li role="listitem"><div aria-label="User 1 story">Story 1</div></li>
+          <li role="listitem"><div aria-label="User 2 story">Story 2</div></li>
+        </ul>
+      </div>
+    </div>
+
     <section id="feed-section">
       <article id="post-1">Post 1</article>
       <article id="post-2">Post 2</article>
@@ -272,6 +288,86 @@ export const instagramHomeFixture = `
       <span>Messages</span>
     </div>
   </div>
+</body>
+</html>
+`;
+
+export const linkedinHomeFixture = `
+<!DOCTYPE html>
+<html>
+<head><title>Feed | LinkedIn</title></head>
+<body>
+  <!-- Top Navigation Header -->
+  <header id="global-nav">
+    <nav class="global-nav__nav">
+      <ul>
+        <li class="global-nav__primary-item" id="nav-home"><a href="/feed/">Home</a></li>
+        <li class="global-nav__primary-item" id="nav-network"><a href="/mynetwork/">My Network</a></li>
+        <li class="global-nav__primary-item" id="nav-jobs"><a href="/jobs/">Jobs</a></li>
+        <li class="global-nav__primary-item" id="nav-messaging"><a href="/messaging/">Messaging</a></li>
+        <li class="global-nav__primary-item" id="nav-notifications"><a href="/notifications/">Notifications</a></li>
+      </ul>
+
+      <div class="global-nav__secondary-items">
+        <!-- Try Premium Promo Link (hide) -->
+        <a class="premium-upsell-link" id="nav-premium" href="/premium/">Try Premium for $0</a>
+
+        <!-- For Business / App Launcher (hide) -->
+        <li class="global-nav__app-launcher" id="nav-business">
+          <button>For Business</button>
+        </li>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Scaffold Layout -->
+  <div class="scaffold-layout">
+    <div class="scaffold-layout__content">
+      <!-- Left Profile Sidebar (hide) -->
+      <aside class="scaffold-layout__sidebar" id="left-sidebar">
+        <div class="feed-identity-module" id="identity-card">
+          <p>User Profile & Analytics</p>
+        </div>
+      </aside>
+
+      <!-- Center Main Column -->
+      <main class="scaffold-layout__main" id="main-column">
+        <!-- Main Feed Container (hide) -->
+        <div id="voyager-feed" class="scaffold-finite-scroll">
+          <div class="scaffold-finite-scroll__content" id="feed-container">
+            <!-- Organic Post (keep unless feed hidden) -->
+            <div class="feed-shared-update-v2" id="organic-post-1">
+              <div class="feed-shared-actor__meta">Normal post from connection</div>
+            </div>
+
+            <!-- Promoted / Sponsored Post (hide) -->
+            <div class="feed-shared-update-v2" id="promoted-post-1" data-ad-banner="true">
+              <div class="feed-shared-actor--promoted">
+                <span class="feed-shared-actor__sub-description" aria-label="Promoted">Promoted</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right News & Trends Sidebar (hide) -->
+      <aside class="scaffold-layout__aside" id="right-sidebar">
+        <div class="news-module" id="news-widget">
+          <h3>LinkedIn News</h3>
+        </div>
+        <div class="ad-banner-container" id="sidebar-ad">
+          <p>Promoted Ad Card</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Persistent Floating Messages Overlay (hide) -->
+  <aside id="msg-overlay" class="msg-overlay-list-bubble" aria-label="Messaging">
+    <div class="msg-overlay-bubble-header">
+      <h4>Messaging</h4>
+    </div>
+  </aside>
 </body>
 </html>
 `;

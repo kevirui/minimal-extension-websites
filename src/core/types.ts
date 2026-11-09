@@ -2,7 +2,7 @@
  * Core type definitions for ClearFrame.
  */
 
-export type SiteId = 'youtube' | 'reddit' | 'instagram';
+export type SiteId = 'youtube' | 'reddit' | 'instagram' | 'linkedin';
 
 /**
  * Contextual page types for route-level applicability.

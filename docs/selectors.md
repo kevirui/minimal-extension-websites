@@ -211,10 +211,139 @@ This document records the exact CSS selectors used by ClearFrame, the target sur
 
 ---
 
-### 3.3 `ig-hide-nav-buttons` — Hide Reels, Search, Create, More & Meta
+### 3.3 `ig-hide-feed` — Hide Algorithmic Feed (Focus Mode)
 - **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
-- **Target Component**: Reels, Search, Create (+), More (menu), and Also from Meta (Threads) buttons from the left navigation bar.
+- **Target Component**: Main stream of photo/video posts on the home feed.
+- **Route Scope**: Home (`home`). Scoped to `url.pathname === '/' || url.pathname === ''`.
+- **Selectors**:
+  - `main[role="main"] section article`
+  - `main[role="main"] article[role="presentation"]`
+  - `main[role="main"] div:has(> article)`
+  - `#feed-section`
+- **Reversibility**: Removing `#clearframe-rule-ig-hide-feed` restores the home feed immediately. Direct messages, search, and profile pages remain unaffected.
+
+---
+
+### 3.4 `ig-hide-stories-tray` — Hide Stories Tray
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Top horizontal stories carousel tray on home feed.
+- **Route Scope**: Home (`home`). Scoped to `url.pathname === '/' || url.pathname === ''`.
+- **Selectors**:
+  - `div[role="menu"][aria-label*="Stories" i]`
+  - `div[role="menu"][aria-label*="Historias" i]`
+  - `main div[role="menu"]`
+  - `main div:has(> div > div > div > ul li div[aria-label*="story" i])`
+  - `main div:has(> div > ul > li > div[aria-label*="story" i])`
+  - `#stories-tray-wrapper`
+  - `#stories-tray`
+- **Reversibility**: Removing `#clearframe-rule-ig-hide-stories-tray` restores the stories tray instantly.
+
+---
+
+### 3.5 `ig-hide-nav-buttons` — Simplify Navigation (Home, Messages & Profile Only)
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Left navigation bar items (Reels, Search, Explore, Notifications, Create, More, and Also from Meta / Threads).
 - **Route Scope**: Global (`all`).
-- **Selectors**: Targets navigation buttons using accessible labels, SVG patterns, and destination URLs (`/reels/`, `threads.net`, `aria-label*="Search"`, `aria-label*="New post"`, `aria-label*="More"`, `aria-label*="Settings"`).
-- **Reversibility**: Removing `#clearframe-rule-ig-hide-nav-buttons` immediately unhides these items. Home, Notifications, Direct Messages, and Profile buttons remain intact.
+- **Selectors**: Targets non-essential navigation buttons using accessible labels (`Search`, `Explore`, `Notifications`, `Create`, `More`, `Settings`), destination paths (`/reels/`, `/explore/`, `threads.net`), and action wrappers.
+- **Layout Styling (`customCss`)**:
+  - Enforces navigation sidebar width (`div[role="navigation"], nav { width: 220px !important; min-width: 220px !important; }`).
+  - Forces text labels next to icons to remain permanently visible (`div[role="navigation"] span, nav span { display: inline-block !important; visibility: visible !important; opacity: 1 !important; }`).
+- **Reversibility**: Removing `#clearframe-rule-ig-hide-nav-buttons` restores all navigation items and default collapsing rules.
+
+---
+
+## 4. LinkedIn Adapter (`linkedin.com`) — Minimal Theme
+
+### 4.1 `li-hide-feed` — Hide Algorithmic Feed
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Infinite scrolling home feed (`#voyager-feed`, `.scaffold-finite-scroll`).
+- **Route Scope**: Home / Feed (`home`).
+- **Selectors**:
+  - `#voyager-feed`
+  - `.scaffold-finite-scroll`
+  - `div[data-view-name="feed-full-feed"]`
+  - `main.scaffold-layout__main > div:has(.feed-shared-update-v2)`
+  - `main.scaffold-layout__main .scaffold-finite-scroll__content`
+  - `#feed-container`
+- **Reversibility**: Removing `#clearframe-rule-li-hide-feed` restores the feed. Jobs, Messaging, and Network pages are never affected.
+
+---
+
+### 4.2 `li-hide-promoted` — Hide Promoted Posts & Sponsored Ads
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Sponsored updates, promoted cards, and sidebar advertising banners.
+- **Route Scope**: Global (`all`).
+- **Selectors**:
+  - `.feed-shared-update-v2:has(.feed-shared-actor--promoted)`
+  - `.feed-shared-update-v2:has([data-tracking-control-name*="promoted" i])`
+  - `.feed-shared-update-v2:has([data-tracking-control-name*="sponsored" i])`
+  - `.feed-shared-update-v2:has(.feed-shared-actor__sub-description[aria-label*="Promoted" i])`
+  - `.feed-shared-update-v2:has(.feed-shared-actor__sub-description[aria-label*="Promocionado" i])`
+  - `.feed-shared-update-v2[data-ad-banner]`
+  - `.ad-banner-container`
+  - `.feed-shared-ad`
+  - `div[data-ad-banner]`
+  - `aside .ad-banner`
+- **Reversibility**: Removing `#clearframe-rule-li-hide-promoted` restores sponsored posts. Organic posts are strictly preserved.
+
+---
+
+### 4.3 `li-hide-right-sidebar` — Hide Right Sidebar (News & Trends)
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Right rail containing LinkedIn News, promoted widgets, and trending topics.
+- **Route Scope**: Home / Feed (`home`).
+- **Selectors**:
+  - `aside.scaffold-layout__aside`
+  - `.scaffold-layout__aside`
+  - `.news-module`
+  - `aside:has(.news-module)`
+  - `section:has(#feed-news-module)`
+- **Layout Styling (`customCss`)**:
+  - Dynamically centers the feed container (`.scaffold-layout__content { display: flex !important; justify-content: center !important; }`).
+  - Clears float and sets auto margins (`.scaffold-layout__main { margin: 0 auto !important; float: none !important; }`).
+- **Reversibility**: Restores the right sidebar and multi-column grid layout.
+
+---
+
+### 4.4 `li-hide-left-sidebar` — Hide Left Profile & Analytics Sidebar
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Left sidebar profile identity module, impression counts, and saved items card.
+- **Route Scope**: Home / Feed (`home`).
+- **Selectors**:
+  - `.scaffold-layout__sidebar`
+  - `aside.scaffold-layout__sidebar`
+  - `.feed-identity-module`
+  - `div:has(> .feed-identity-module)`
+- **Reversibility**: Restores profile summary module without reloading.
+
+---
+
+### 4.5 `li-hide-floating-messages` — Hide Floating Messaging Popup
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Floating messaging list bubble anchored in the bottom right corner.
+- **Route Scope**: Global (`all`).
+- **Selectors**:
+  - `#msg-overlay`
+  - `.msg-overlay-list-bubble`
+  - `.msg-overlay-container`
+  - `aside[aria-label*="Messaging" i]`
+  - `aside[aria-label*="Mensajes" i]`
+- **Reversibility**: Removing `#clearframe-rule-li-hide-floating-messages` restores the drawer. Main top navigation Messaging remains untouched.
+
+---
+
+### 4.6 `li-clean-nav-header` — Simplify Top Navigation Bar
+- **Status**: [Unit & DOM Fixture Verified] [Integration Scenario Tested]
+- **Target Component**: Premium upsell banners, For Business apps launcher, and Advertise button.
+- **Route Scope**: Global (`all`).
+- **Selectors**:
+  - `.global-nav__secondary-items .premium-upsell-link`
+  - `a:has(.global-nav__premium-link)`
+  - `.global-nav__nav:has(a[href*="/premium/"]) a[href*="/premium/"]`
+  - `.global-nav__app-launcher`
+  - `li:has(.global-nav__app-launcher)`
+  - `.global-nav__secondary-items li:has(a[href*="/campaignmanager/"])`
+- **Reversibility**: Restores secondary launcher controls and upsell links. Essential buttons (Home, My Network, Jobs, Messaging, Notifications) are preserved.
+
+
 
